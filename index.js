@@ -41,8 +41,6 @@ const pairUsers =(user,socket)=>
   // partner.partnerId=user.myId;
   users.get(socket.id).partnerId=partner[0]
   users.get(partner[0]).partnerId=user.myId;
-  console.log('partner found')
-  console.log(users);
   socket.emit('partner found',partner[1].myId)
   io.to(partner[0]).emit('save partner',socket.id);
   }
@@ -59,7 +57,6 @@ socket.on('skipped',()=>
   io.to(me.partnerId).emit('skipped')
   users.get(me.partnerId).partnerId=null;
   me.partnerId=null;
-  console.log(users)
   }
   catch(error)
   {
@@ -68,24 +65,19 @@ socket.on('skipped',()=>
 })
 socket.on('gotTheVideo',()=>
 {
-  console.log('gotTheVideo');
   pairUsers(user,socket)
 })
     socket.on('chat message', (msg) => {
-      console.log('Message:', msg);
       io.emit('chat message', msg);
     });
 const socketData=socket.id;
     socket.on('offer',(data)=>
     {
-      console.log('offer')
-      console.log(data);
        io.to(data.id).emit('answer',data,socketData)
     })
     socket.on('candidate',({candidate,partnerId})=>
     {
            
-           console.log('sended by',socket.id,' will be received by ')
            io.to(partnerId).emit('candidates',candidate)
     })
     socket.on('sending answer',(data,socketData)=>
@@ -95,7 +87,6 @@ const socketData=socket.id;
   
     socket.on('disconnect', () => {
      let me=users.get(socket.id)
-     console.log(me)
      let other;
      if(!(me.partnerId))
      {
@@ -109,8 +100,7 @@ const socketData=socket.id;
      }
       users.delete(socket.id)
       console.log('A user disconnected');
-      console.log(users.size)
-      console.log(users)
+     
     });
     // socket.on('offer',(data))
   });
