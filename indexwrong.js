@@ -7,12 +7,11 @@ const app= express();
 const server = http.createServer(app);
   
 const users=new Map();
-
-const io = new Server(server,{cors:{origin:'*'}});// so that html wala connct ho ske
+console.log(users.size)
+const io = new Server(server,{cors:{origin:'*'}});
 app.use(cors());
 io.on('connection', (socket) => {
     console.log('A user connected',socket.id);
- 
   socket.on('error',(error)=>
   {
     console.log('server side error',error)
@@ -20,15 +19,14 @@ io.on('connection', (socket) => {
 
     let user={
       myId:socket.id,
-      partnerId:null
+      partnerId:null,
     }
     users.set(socket.id,user)
-    
-     
+    console.log(users.size)
+   
 const pairUsers =(user,socket)=>
 {
   const availableUsers=[...users].filter(([socketID,user])=>user.myId!=socket.id&&user.partnerId===null);
-  console.log("availableusers ", availableUsers.length)
   const getRandomNumber=(n)=>
   {
     return Math.floor(Math.random()*n);
@@ -37,11 +35,10 @@ const pairUsers =(user,socket)=>
   {
     let random=getRandomNumber(availableUsers.length)
   let partner=availableUsers[random]
-  
+  // user.partnerId=partner.myId;
+  // partner.partnerId=user.myId;
   users.get(socket.id).partnerId=partner[0]
   users.get(partner[0]).partnerId=user.myId;
-  console.log('partner found')
-  //console.log(users);
   socket.emit('partner found',partner[1].myId)
   io.to(partner[0]).emit('save partner',socket.id);
   }
@@ -58,7 +55,6 @@ socket.on('skipped',()=>
   io.to(me.partnerId).emit('skipped')
   users.get(me.partnerId).partnerId=null;
   me.partnerId=null;
-  console.log(users)
   }
   catch(error)
   {
@@ -67,33 +63,19 @@ socket.on('skipped',()=>
 })
 socket.on('gotTheVideo',()=>
 {
-  if(user.partnerId===null)
-  {
-    pairUsers(user,socket)
-
-  }
+  pairUsers(user,socket)
 })
-
-     
-
-
-
-
-  
     socket.on('chat message', (msg) => {
-     // console.log('Message:', msg);
       io.emit('chat message', msg);
     });
 const socketData=socket.id;
     socket.on('offer',(data)=>
     {
-      //console.log(data);
        io.to(data.id).emit('answer',data,socketData)
     })
     socket.on('candidate',({candidate,partnerId})=>
     {
            
-           console.log('sended by',socket.id,' will be received by ')
            io.to(partnerId).emit('candidates',candidate)
     })
     socket.on('sending answer',(data,socketData)=>
@@ -101,32 +83,26 @@ const socketData=socket.id;
       io.to(socketData).emit('receive answer',data)
     })
   
-    // socket.on('disconnect', () => {
-    //   users=users.filter(user=>user.myid!=socket.id)
-    //   console.log('A user disconnected');
-    // });
-    // socket.on('offer',(data))
-
     socket.on('disconnect', () => {
-      let me=users.get(socket.id)
-      let other;
-      if(!(me.partnerId))
-      {
-      
+     let me=users.get(socket.id)
+     let other;
+     if(!(me.partnerId))
+     {
+     
+     }
+     else{
+      other=users.get(me.partnerId)
+      if(other){
+        other.partnerId=null;
       }
-      else{
-       other=users.get(me.partnerId)
-       if(other){
-         other.partnerId=null;
-       }
-      }
-       users.delete(socket.id)
-       console.log('A user disconnected');
-      
-     });
+     }
+      users.delete(socket.id)
+      console.log('A user disconnected');
+     
+    });
   });
+  app.use(express.json());
 
-app.use(express.json());
 app.get('/',(req,res)=>
 {
     res.send('hello');
