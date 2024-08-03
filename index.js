@@ -8,7 +8,7 @@ const server = http.createServer(app);
   
 const users=new Map();
 
-const io = new Server(server,{cors:{origin:'*'}});// so that html wala connct ho ske
+const io = new Server(server,{cors:{origin:'*'}});
 app.use(cors());
 io.on('connection', (socket) => {
     console.log('A user connected',socket.id);
@@ -22,9 +22,9 @@ io.on('connection', (socket) => {
       myId:socket.id,
       partnerId:null
     }
-    users.set(socket.id,user)
+  
     
-     
+   
 const pairUsers =(user,socket)=>
 {
   const availableUsers=[...users].filter(([socketID,user])=>user.myId!=socket.id&&user.partnerId===null);
@@ -55,9 +55,16 @@ socket.on('skipped',()=>
   try{
     
   let me=users.get(socket.id)
-  io.to(me.partnerId).emit('skipped')
-  users.get(me.partnerId).partnerId=null;
-  me.partnerId=null;
+  io.to(me.partnerId).emit('skipped');
+  console.log('done')
+   users.get(me.partnerId).partnerId=null;
+   users.delete(me.partnerId);
+
+   me.partnerId=null;
+
+  users.delete(socket.id);
+ 
+
   console.log(users)
   }
   catch(error)
@@ -67,11 +74,14 @@ socket.on('skipped',()=>
 })
 socket.on('gotTheVideo',()=>
 {
-  if(user.partnerId===null)
-  {
+  console.log("users")
+  console.log(user)
+  users.set(socket.id,user);
+  console.log(users)
+  user.partnerId=null;
     pairUsers(user,socket)
 
-  }
+  
 })
 
      
@@ -87,30 +97,27 @@ socket.on('gotTheVideo',()=>
 const socketData=socket.id;
     socket.on('offer',(data)=>
     {
-      //console.log(data);
+      console.log(data.id)
+      console.log("received offer ")
+  
        io.to(data.id).emit('answer',data,socketData)
     })
-    socket.on('candidate',({candidate,partnerId})=>
+    socket.on('candidate',({candidate})=>
     {
            
-           console.log('sended by',socket.id,' will be received by ')
-           io.to(partnerId).emit('candidates',candidate)
+          let me=users.get(socket.id)
+           io.to(me.partnerId).emit('candidates',candidate)
     })
     socket.on('sending answer',(data,socketData)=>
     {
       io.to(socketData).emit('receive answer',data)
     })
   
-    // socket.on('disconnect', () => {
-    //   users=users.filter(user=>user.myid!=socket.id)
-    //   console.log('A user disconnected');
-    // });
-    // socket.on('offer',(data))
 
     socket.on('disconnect', () => {
       let me=users.get(socket.id)
       let other;
-      if(!(me.partnerId))
+      if(!(me?.partnerId))
       {
       
       }
